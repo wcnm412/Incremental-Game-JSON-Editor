@@ -24,13 +24,13 @@
         <div class="section">
             <h2>Select JSON display style:</h2>
             <input type="radio" id="rawStyle" name="displayStyle" value="rawStyle" checked />
-            <label for="rawStyle" ">Raw</label>
+            <label for="rawStyle">Raw</label>
             <input type="radio" id="listStyle" name="displayStyle" value="listStyle" />
             <label for="listStyle">List</label>
         </div>
         
         <div class="section">
-            <label for="jsonOutputRaw">Edit your save data (JSON):</label>
+            <label>Edit your save data (JSON):</label>
         </div>
 
         <div class="section">
@@ -86,9 +86,16 @@
                 console.log('Error parsing save. ' + err);
                 return;
             }
-            let parsed = JSON.parse(decoded);
-            elements.jsonOutputRaw.value = JSON.stringify(parsed, null, 2);
-            elements.decodeError.style.display = 'none';
+            let parsed;
+            try {
+                parsed = JSON.parse(decoded);
+                elements.jsonOutputRaw.value = JSON.stringify(parsed, null, 2);
+                elements.decodeError.style.display = 'none';
+            } catch (err) {
+                elements.decodeError.style.display = 'block';
+                console.log('Error parsing JSON. ' + err);
+                return;
+            }
 
             updateTabs(parsed);
         });
@@ -157,8 +164,7 @@
         }
         
         function updateTabs(jsonOutputRaw) {
-            const tabContainer = document.querySelector('.tab');
-            tabContainer.textContent = '';
+            elements.tabs.textContent = '';
             document.querySelectorAll('.tabcontent').forEach(el => el.remove());
 
             // create button for each key/index and add behaviour
