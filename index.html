@@ -30,7 +30,11 @@
         </div>
         
         <div class="section">
-            <div class="tab" id="tab"></div>
+            <label for="jsonOutputRaw">Edit your save data (JSON):</label>
+        </div>
+
+        <div class="section">
+            <div class="tab" id="tab" style="display: none;"></div>
         </div>
         
         <div class="section">
@@ -38,7 +42,6 @@
         </div>
 
         <div class="section">
-            <label for="jsonOutputRaw">Edit your save data (JSON):</label>
             <textarea id="jsonOutputRaw" placeholder="Decoded JSON will appear here..."></textarea>
             <div class="error" id="jsonError">Error parsing JSON. Make sure the JSON is correctly formatted!</div>
         </div>
