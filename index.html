@@ -18,18 +18,34 @@
         </div>
 
         <div class="section">
-            <button id="decodeBtn">Decode to JSON</button>
+            <button id="decodeButton">Decode to JSON</button>
         </div>
 
         <div class="section">
-            <label for="jsonOutput">Edit your save data (JSON):</label>
-            <textarea id="jsonOutput" placeholder="Decoded JSON will appear here..."></textarea>
+            <h2>Select JSON display style:</h2>
+            <input type="radio" id="rawStyle" name="displayStyle" value="rawStyle" checked />
+            <label for="rawStyle" ">Raw</label>
+            <input type="radio" id="listStyle" name="displayStyle" value="listStyle" />
+            <label for="listStyle">List</label>
+        </div>
+        
+        <div class="section">
+            <div class="tab" id="tab"></div>
+        </div>
+        
+        <div class="section">
+            <textarea id="jsonOutputList" placeholder="Decoded JSON will appear here..." style="display: none;"></textarea>
+        </div>
+
+        <div class="section">
+            <label for="jsonOutputRaw">Edit your save data (JSON):</label>
+            <textarea id="jsonOutputRaw" placeholder="Decoded JSON will appear here..."></textarea>
             <div class="error" id="jsonError">Error parsing JSON. Make sure the JSON is correctly formatted!</div>
         </div>
 
         <div class="section">
-            <button id="encodeBtn">Encode to Base64</button>
-            <button id="copyBtn">Copy to Clipboard</button>
+            <button id="encodeButton">Encode to Base64</button>
+            <button id="copyButton">Copy to Clipboard</button>
         </div>
 
         <div class="section">
@@ -42,51 +58,76 @@
     <script>
         const elements = {
             encodedInput: document.getElementById('encodedInput'),
-            jsonOutput: document.getElementById('jsonOutput'),
+            jsonOutputRaw: document.getElementById('jsonOutputRaw'),
             encodedOutput: document.getElementById('encodedOutput'),
-            decodeBtn: document.getElementById('decodeBtn'),
-            encodeBtn: document.getElementById('encodeBtn'),
-            copyBtn: document.getElementById('copyBtn'),
+            decodeButton: document.getElementById('decodeButton'),
+            encodeButton: document.getElementById('encodeButton'),
+            copyButton: document.getElementById('copyButton'),
             decodeError: document.getElementById('decodeError'),
             jsonError: document.getElementById('jsonError'),
-            copySuccess: document.getElementById('copySuccess')
+            copySuccess: document.getElementById('copySuccess'),
+            rawStyleButton: document.getElementById('rawStyle'),
+            listStyleButton: document.getElementById('listStyle'),
+            jsonOutputList: document.getElementById('jsonOutputList'),
+            tabs: document.getElementById('tab')
         };
 
         // Decode function
-        elements.decodeBtn.addEventListener('click', () => {
+        elements.decodeButton.addEventListener('click', () => {
             let input = elements.encodedInput.value;            
-            let decoded = 0;
+            let decoded;
             try {
                 decoded = atob(input);
-            } catch (err) {
+            } catch (err) { // occurs with malformed input
                 elements.decodeError.style.display = 'block';
                 console.log('Error parsing save. ' + err);
                 return;
             }
             let parsed = JSON.parse(decoded);
-            elements.jsonOutput.value = JSON.stringify(parsed, null, 2);
+            elements.jsonOutputRaw.value = JSON.stringify(parsed, null, 2);
             elements.decodeError.style.display = 'none';
+
+            updateTabs(parsed);
         });
 
         // Encode function
-        elements.encodeBtn.addEventListener('click', () => {
-            let input = elements.jsonOutput.value;
-            let parsed = 0;
-            try {
-                parsed = JSON.parse(input);
-            } catch (err) {
-                elements.jsonError.style.display = 'block';
-                console.log('Error parsing JSON. ' + err);
-                return;
+        elements.encodeButton.addEventListener('click', () => {
+            let parsed;
+            let input = elements.jsonOutputRaw.value;
+            let json = JSON.parse(input);
+            if (elements.listStyleButton.checked) { // handles list style
+                let change = elements.jsonOutputList.value; // find the user changes
+                let index; // becomes the title of the tab, which is same as the JSON key
+                document.querySelectorAll('.tablinks').forEach(btn => {
+                    if (btn.classList.contains('active')) {
+                        index = btn.textContent;
+                    }
+                })
+                try {
+                    parsed = JSON.parse(change); // parses the user change into JSON
+                } catch (err) { // occurs with malformed JSON
+                    elements.jsonError.style.display = 'block';
+                    console.log('Error parsing JSON. ' + err);
+                    return;
+                }
+                json[index] = parsed; // replace specific entry with the updated value
+                parsed = json; // puts it into parsed so the final function can work
+            } else { // handles raw style
+                try {
+                    parsed = JSON.parse(input); // check if it can just be simply converted back
+                } catch (err) { // occurs with malformed JSON
+                    elements.jsonError.style.display = 'block';
+                    console.log('Error parsing JSON. ' + err);
+                    return;
+                }
             }
-            let mini = JSON.stringify(parsed);
-            let encoded = btoa(mini);
+            let encoded = btoa(JSON.stringify(parsed));
             elements.encodedOutput.value = encoded;
             elements.jsonError.style.display = 'none';
         });
 
         // Copy to clipboard function
-        elements.copyBtn.addEventListener('click', async () => {
+        elements.copyButton.addEventListener('click', async () => {
             try {
                 await navigator.clipboard.writeText(elements.encodedOutput.value);
                 elements.copySuccess.style.display = 'block';
@@ -99,11 +140,71 @@
                         elements.copySuccess.style.display = 'none';
                     }, 1000); 
                 }, 1000);
-            } catch (err) {
+            } catch (err) { 
                 console.log('Error copying save to clipboard. ' + err);
                 elements.copySuccess.style.display = 'none';
             }
         });
+
+        // json tabs
+
+        // called when tab is clicked, just copies the value into the box
+        function openTab(tabName) {
+            elements.jsonOutputList.value = JSON.stringify(JSON.parse(elements.jsonOutputRaw.value)[tabName], null, 2);
+        }
+        
+        function updateTabs(jsonOutputRaw) {
+            const tabContainer = document.querySelector('.tab');
+            tabContainer.textContent = '';
+            document.querySelectorAll('.tabcontent').forEach(el => el.remove());
+
+            // create button for each key/index and add behaviour
+            if (elements.listStyleButton.checked) {
+                Object.keys(jsonOutputRaw).forEach((key, index) => {
+                    const button = document.createElement('button');
+                    button.className = 'tablinks';
+                    button.textContent = key;
+                    button.onclick = () => { // make new active by removing all and adding one
+                        document.querySelectorAll('.tablinks').forEach(btn => {
+                            btn.classList.remove('active');
+                        })
+                        button.classList.add('active');
+                        openTab(key);
+                    }
+                    tabContainer.appendChild(button);
+                })
+            }
+        }
+
+        elements.rawStyleButton.addEventListener('click', () => {
+            // hide list, show raw
+            elements.jsonOutputRaw.style.display = 'block';
+            elements.tabs.style.display = 'none';
+            elements.jsonOutputList.style.display = 'none';
+
+            try {
+                updateTabs(JSON.parse(elements.jsonOutputRaw.value));
+            } catch (err) { 
+                console.log('No data to update tabs');
+            }
+        })
+        
+        elements.listStyleButton.addEventListener('click', () => {
+            // hide raw, show list
+            elements.jsonOutputRaw.style.display = 'none';
+            elements.tabs.style.display = 'block';
+            elements.jsonOutputList.style.display = 'block';
+
+            try {
+                updateTabs(JSON.parse(elements.jsonOutputRaw.value));
+
+                // autoselect first tab
+                const firstButton = document.querySelector('.tablinks'); 
+                if (firstButton) firstButton.click();
+            } catch (err) {
+                console.log('No data to update tabs');
+            }
+        })
     </script>
 </body>
 
